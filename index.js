@@ -2,7 +2,7 @@ const express =require('express');
 const app =express();
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config();
 const port=process.env.PORT || 5000;
 
@@ -13,7 +13,7 @@ app.use(express.json());
    // middelware jwt.verify
    const verifyToken =(req, res, next)=>{
     const authorization =req.headers.authorization;
-    console.log(authorization);
+
     if(!authorization){
       return res.status(401).send({message:'forbaiden access'});
     }
@@ -110,7 +110,32 @@ const client = new MongoClient(url, {
         const categories =[...new Set(productdata.map(product=>product.category))];
         const brands =[...new Set(productdata.map(product=>product.brand))];
         res.send({products, categories, brands, totallproducts});
+      });
+
+      // wishlist add
+      app.patch('/wishlist', verifyToken, async(req, res)=>{
+        const {userEmail, productId} =req.body;
+
+        const result =await userCollection.updateOne(
+          {email: userEmail},
+          {$addToSet: {wishlist: new ObjectId(String(productId))}}
+        );
+        res.send(result);
+      });
+
+      //get wishlist
+      app.get('/wishlist/:userId', verifyToken, async(req, res)=>{
+        const userId =req.params.userId;
+        const user =await userCollection.findOne({
+          _id: new ObjectId(String(userId))
+        })
+        if(!user){
+          return res.send({message:'user not found'})
+        }
+        const wishList =await productCollection.find({_id: {$in: user.wishlist || []}}).toArray();
+        res.send(wishList);
       })
+
 
 
       // Send a ping to confirm a successful connection

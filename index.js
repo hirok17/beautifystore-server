@@ -112,6 +112,15 @@ const client = new MongoClient(url, {
         res.send({products, categories, brands, totallproducts});
       });
 
+      //get product for seller
+
+      app.get('/products', verifyToken, verifySeller, async(req, res)=>{
+        const email =req.params.email;
+        const query ={sellerEmail: email};
+        const result =await productCollection.find(query).toArray();
+        res.send(result);
+      })
+
       // wishlist add
       app.patch('/wishlist', verifyToken, async(req, res)=>{
         const {userEmail, productId} =req.body;
